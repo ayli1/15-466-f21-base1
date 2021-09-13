@@ -18,7 +18,7 @@ PlayMode::PlayMode() {
 
 	//Also, *don't* use these tiles in your game:
 
-	{ //use tiles 0-16 as some weird dot pattern thing:
+	/* { //use tiles 0-16 as some weird dot pattern thing:
 		std::array< uint8_t, 8*8 > distance;
 		for (uint32_t y = 0; y < 8; ++y) {
 			for (uint32_t x = 0; x < 8; ++x) {
@@ -46,7 +46,30 @@ PlayMode::PlayMode() {
 			}
 			ppu.tile_table[index] = tile;
 		}
-	}
+	}*/
+
+	//background
+	ppu.tile_table[0].bit0 = {
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+	};
+
+	ppu.tile_table[0].bit1 = {
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+	};
 
 	//use sprite 32 as a "player":
 	ppu.tile_table[32].bit0 = {
@@ -59,7 +82,7 @@ PlayMode::PlayMode() {
 		0b11111111,
 		0b01111110,
 	};
-	ppu.tile_table[32].bit1 = {
+	ppu.tile_table[32].bit1 = { // Face
 		0b00000000,
 		0b00000000,
 		0b00011000,
@@ -89,15 +112,15 @@ PlayMode::PlayMode() {
 	//used for the player:
 	ppu.palette_table[7] = {
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
+		glm::u8vec4(0xff, 0xff, 0x00, 0xff), // Player color (yellow)
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 	};
 
 	//used for the misc other sprites:
 	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
+		glm::u8vec4(0x00, 0x00, 0x00, 0x00), // Corner color
+		glm::u8vec4(0xff, 0x00, 0x00, 0xff), // Body
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 	};
@@ -164,25 +187,42 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	// Collision detection
+	// Referenced from https://github.com/15-466/15-466-f21-base0/blob/main/PongMode.cpp
+	// TODO: remove hardcoded target position
+	glm::vec2 target = glm::vec2(int32_t(PPU466::ScreenWidth / 2), int32_t(PPU466::ScreenWidth / 2));
+	glm::vec2 min = glm::max(player_at, target);
+	glm::vec2 max = glm::min(player_at + glm::vec2(8,8), target + glm::vec2(8, 8));
+
+	//if no overlap, no collision:
+	if (min.x > max.x || min.y > max.y) return;
+
+	if (max.x - min.x > max.y - min.y) {
+		// Change color
+		draw_opponent = false;
+	}
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//--- set ppu state based on game state ---
 
 	//background color will be some hsv-like fade:
-	ppu.background_color = glm::u8vec4(
+	/*ppu.background_color = glm::u8vec4(
 		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 0.0f / 3.0f) ) ) ))),
 		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 1.0f / 3.0f) ) ) ))),
 		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 2.0f / 3.0f) ) ) ))),
 		0xff
-	);
+	);*/
+	ppu.background_color = glm::u8vec4(0x00, 0x00, 0x00, 0x00);
 
 	//tilemap gets recomputed every frame as some weird plasma thing:
 	//NOTE: don't do this in your game! actually make a map or something :-)
 	for (uint32_t y = 0; y < PPU466::BackgroundHeight; ++y) {
 		for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
 			//TODO: make weird plasma thing
-			ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
+			//ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
+			ppu.background[x + PPU466::BackgroundWidth * y] = 0; // tile 0 and palette 0
 		}
 	}
 
@@ -197,13 +237,26 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.sprites[0].attributes = 7;
 
 	//some other misc sprites:
-	for (uint32_t i = 1; i < 63; ++i) {
+	/*for (uint32_t i = 1; i < 63; ++i) {
 		float amt = (i + 2.0f * background_fade) / 62.0f;
 		ppu.sprites[i].x = int32_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
 		ppu.sprites[i].y = int32_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
 		ppu.sprites[i].index = 32;
 		ppu.sprites[i].attributes = 6;
 		if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
+	}*/
+
+	if (draw_opponent) {
+		ppu.sprites[1].x = int32_t(PPU466::ScreenWidth / 2);
+		ppu.sprites[1].y = int32_t(PPU466::ScreenHeight / 2);
+		ppu.sprites[1].index = 32;
+		ppu.sprites[1].attributes = 6;
+	}
+	else {
+		ppu.sprites[1].x = 0;
+		ppu.sprites[1].y = 240;
+		ppu.sprites[1].index = 32;
+		ppu.sprites[1].attributes = 6;
 	}
 
 	//--- actually draw ---

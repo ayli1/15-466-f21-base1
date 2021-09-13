@@ -32,4 +32,6 @@ struct PlayMode : Mode {
 	//----- drawing handled by PPU466 -----
 
 	PPU466 ppu;
+
+	bool draw_opponent = true;
 };
