@@ -14,13 +14,13 @@
 #include "read_write_chunk.hpp"
 
 int main(int argc, char** argv) {
-	std::cout << "Heyyy bestie \n";
+	std::cout << "Hey bestie... \n";
 	// Initialize palette and tile tables -- will be packed in same order as path arrays,
-	// i.e., sprite_paths and room_paths. Last palette is reserved for background
+	// i.e., sprite_paths and room_paths. Last palette and tile are reserved for background
 	std::vector< PPU466::Palette > palette_table(8);
 	std::vector< PPU466::Tile > tile_table(16 * 16);
 
-	// PNG filenames (../images/flame.png)
+	// PNG filenames
 	int num_sprites = 6;
 	std::string sprite_paths[6] = { "../images/flame.png",
 								    "../images/unlit_torch.png",
@@ -50,8 +50,16 @@ int main(int argc, char** argv) {
 	};
 	palette_table[7] = bg_palette;
 
+	PPU466::Tile bg_tile;
+	for (int i = 0; i < 8; i++) {
+		bg_tile.bit1[i] = 0; // All 0's
+		bg_tile.bit0[i] = 0; // All 0's
+	}
+	tile_table[255] = bg_tile;
+
 	// Load sprite PNGs
 	for (int i = 0; i < num_sprites; i++) {
+		std::cout << sprite_paths[i] << std::endl;
 		load_png(data_path(sprite_paths[i]), &size, &data, UpperLeftOrigin); // TODO: Upper or LowerLeftOrigin?
 
 		PPU466::Palette palette = {
@@ -109,6 +117,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	/*
 	for (int i = 0; i < num_rooms; i++) {
 		load_png(data_path(room_paths[i]), &size, &data, UpperLeftOrigin); // TODO: Upper or LowerLeftOrigin?
 
@@ -130,11 +139,14 @@ int main(int argc, char** argv) {
 		}
 
 		tile_table[num_sprites + i] = tile;
-	}
+
+		//DON'T FORGET TO WRITE_CHUNK BELOW
+	}*/
 
 	// Write binary to tiles.bin
 	std::ofstream out(data_path("../tiles.bin"), std::ios::binary);
 	write_chunk("pal0", palette_table, &out);
 	write_chunk("til1", tile_table, &out);
+	//TODO: write_chunk rooms
 
 }

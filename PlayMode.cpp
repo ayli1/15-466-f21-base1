@@ -70,7 +70,7 @@ PlayMode::PlayMode() {
 	}
 
 	//background
-	ppu.tile_table[255].bit0 = {
+	/*ppu.tile_table[255].bit0 = {
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -112,7 +112,7 @@ PlayMode::PlayMode() {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-	};
+	};*/
 
 	/*
 	//use sprite 32 as a "player":
@@ -259,7 +259,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		std::min(255,std::max(0,int32_t(255 * 0.5f * (0.5f + std::sin( 2.0f * M_PI * (background_fade + 2.0f / 3.0f) ) ) ))),
 		0xff
 	);*/
-	ppu.background_color = glm::u8vec4(0x00, 0x00, 0x00, 0x00);
+	ppu.background_color = ppu.palette_table[7][1]; //glm::u8vec4(0x00, 0x00, 0x00, 0x00);
 
 	//tilemap gets recomputed every frame as some weird plasma thing:
 	//NOTE: don't do this in your game! actually make a map or something :-)
@@ -267,12 +267,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
 			//TODO: make weird plasma thing
 			//ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
-			ppu.background[x + PPU466::BackgroundWidth * y] = 254; // tile 255 and palette 0
+			ppu.background[x + PPU466::BackgroundWidth * y] = (7 << 8) + 255; // tile 255 and palette 7
 			// TODO: make all black, but transparent around player; change background_color
 			// to dim orange (like the light of a torch cast onto the halls)
-			if (distance(glm::vec2(x, y), player_at) < 5) {
-				ppu.background[x + PPU466::BackgroundWidth * y] = 255;
-			}
+			//if (distance(glm::vec2(8*x - ppu.background_position.x, 8*y - ppu.background_position.y), player_at) < 5) {
+			//	ppu.background[x + PPU466::BackgroundWidth * y] = 255;
+			//}
 		}
 	}
 
