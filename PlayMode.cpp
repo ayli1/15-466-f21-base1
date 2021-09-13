@@ -1,4 +1,7 @@
 #include "PlayMode.hpp"
+#include "read_write_chunk.hpp"
+#include "data_path.hpp"
+#include "Load.hpp"
 
 //for the GL_ERRORS() macro:
 #include "gl_errors.hpp"
@@ -7,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <random>
+#include <fstream>
 
 PlayMode::PlayMode() {
 	//TODO:
@@ -48,8 +52,25 @@ PlayMode::PlayMode() {
 		}
 	}*/
 
+	std::vector< PPU466::Palette > palette_table(8);
+	std::vector< PPU466::Tile > tile_table(16 * 16);
+
+	// Read in the sprite and room info
+	std::ifstream in(data_path("../tiles.bin"), std::ios::binary);
+	read_chunk(in, "pal0", &palette_table);
+	read_chunk(in, "til1", &tile_table);
+
+	// Transfer to PPU palette and tile table
+	for (int i = 0; i < 8; i++) {
+		ppu.palette_table[i] = palette_table[i];
+	}
+
+	for (int i = 0; i < 256; i++) {
+		ppu.tile_table[i] = tile_table[i];
+	}
+
 	//background
-	ppu.tile_table[0].bit0 = {
+	ppu.tile_table[255].bit0 = {
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -60,7 +81,7 @@ PlayMode::PlayMode() {
 		0b00000000,
 	};
 
-	ppu.tile_table[0].bit1 = {
+	ppu.tile_table[255].bit1 = {
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -71,6 +92,29 @@ PlayMode::PlayMode() {
 		0b00000000,
 	};
 
+	ppu.tile_table[254].bit0 = {
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+		0b00000000,
+	};
+
+	ppu.tile_table[254].bit1 = {
+		0b11111111,
+		0b11111111,
+		0b11111111,
+		0b11111111,
+		0b11111111,
+		0b11111111,
+		0b11111111,
+		0b11111111,
+	};
+
+	/*
 	//use sprite 32 as a "player":
 	ppu.tile_table[32].bit0 = {
 		0b01111110,
@@ -124,7 +168,7 @@ PlayMode::PlayMode() {
 		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
 		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 	};
-
+	*/
 }
 
 PlayMode::~PlayMode() {
@@ -191,6 +235,7 @@ void PlayMode::update(float elapsed) {
 	// Collision detection
 	// Referenced from https://github.com/15-466/15-466-f21-base0/blob/main/PongMode.cpp
 	// TODO: remove hardcoded target position
+	/*
 	glm::vec2 target = glm::vec2(int32_t(PPU466::ScreenWidth / 2), int32_t(PPU466::ScreenWidth / 2));
 	glm::vec2 min = glm::max(player_at, target);
 	glm::vec2 max = glm::min(player_at + glm::vec2(8,8), target + glm::vec2(8, 8));
@@ -201,7 +246,7 @@ void PlayMode::update(float elapsed) {
 	if (max.x - min.x > max.y - min.y) {
 		// Change color
 		draw_opponent = false;
-	}
+	}*/
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -222,7 +267,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
 			//TODO: make weird plasma thing
 			//ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
-			ppu.background[x + PPU466::BackgroundWidth * y] = 0; // tile 0 and palette 0
+			ppu.background[x + PPU466::BackgroundWidth * y] = 254; // tile 255 and palette 0
+			// TODO: make all black, but transparent around player; change background_color
+			// to dim orange (like the light of a torch cast onto the halls)
+			if (distance(glm::vec2(x, y), player_at) < 5) {
+				ppu.background[x + PPU466::BackgroundWidth * y] = 255;
+			}
 		}
 	}
 
@@ -233,8 +283,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//player sprite:
 	ppu.sprites[0].x = int32_t(player_at.x);
 	ppu.sprites[0].y = int32_t(player_at.y);
-	ppu.sprites[0].index = 32;
-	ppu.sprites[0].attributes = 7;
+	ppu.sprites[0].index = 0; // TODO
+	ppu.sprites[0].attributes = 0;
+
+	// TODO: give all sprites except player priority = 1 for their attribute
 
 	//some other misc sprites:
 	/*for (uint32_t i = 1; i < 63; ++i) {
@@ -246,6 +298,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
 	}*/
 
+	/*
 	if (draw_opponent) {
 		ppu.sprites[1].x = int32_t(PPU466::ScreenWidth / 2);
 		ppu.sprites[1].y = int32_t(PPU466::ScreenHeight / 2);
@@ -257,7 +310,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[1].y = 240;
 		ppu.sprites[1].index = 32;
 		ppu.sprites[1].attributes = 6;
-	}
+	}*/
 
 	//--- actually draw ---
 	ppu.draw(drawable_size);
