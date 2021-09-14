@@ -281,6 +281,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
+	// TODO: if 0, Room *room = &room0; if 1, Room *room = &room1
+
 	// Collision check
 	bool explode = false;
 	for (int i = 0; i < room0.size(); i++) {
@@ -312,7 +314,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	sprite_idx++;
 
-	bool room_complete = false;
+	bool found_key = false;
 	//bool explode = false;
 	// TODO: give all sprites except player priority = 1 for their attribute
 	for (int i = 0; i < room0.size(); i++) {
@@ -335,6 +337,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			if (obj->reached) {        // Show as key
 				ppu.sprites[sprite_idx].index      = 4;
 				ppu.sprites[sprite_idx].attributes = 4;
+				found_key = true;
 			}
 			else {                // Show as chest
 				ppu.sprites[sprite_idx].index      = 3;
@@ -362,6 +365,30 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[sprite_idx].x = obj->x;
 		ppu.sprites[sprite_idx].y = obj->y;
 		sprite_idx++;
+	}
+
+	// Check if room is complete, i.e. either the key was found or all torches have been lit
+	bool all_lit = true;
+	if (!found_key) {
+		for (int i = 0; i < room0.size(); i++) {
+			Object* obj = &room0[i];
+			if ((obj->obj_type == 0) && !(obj->reached)) {
+				all_lit = false;
+			}
+		}
+	}
+
+	if (found_key || all_lit) { // Room is complete
+		// Show door to next level
+		ppu.sprites[sprite_idx].x = 248;
+		ppu.sprites[sprite_idx].y = 232;
+		ppu.sprites[sprite_idx].index = 6;
+		ppu.sprites[sprite_idx].attributes = 6;
+
+		if (glm::distance(glm::vec2(248, 232), player_at) < 5) {
+			room_num++;
+			std::cout << "To the next level!" << std::endl;
+		}
 	}
 
 	if (explode) {
