@@ -57,8 +57,8 @@ int main(int argc, char** argv) {
 
 	PPU466::Tile bg_tile;
 	for (int i = 0; i < 8; i++) {
-		bg_tile.bit1[i] = 255; // All 0's
-		bg_tile.bit0[i] = 0; // All 1's
+		bg_tile.bit1[i] = 0; // All 0's
+		bg_tile.bit0[i] = 255; // All 1's
 	}
 	tile_table[255] = bg_tile;
 
