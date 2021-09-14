@@ -14,7 +14,7 @@ I drew my assets as PNGs using pixelartmaker.com -- this includes sprite images,
 
 How To Play:
 
-Use the arrow keys to move. The room is pitch black, so you'll need to get closer to an object in order to illuminate it. Once you've lit all the torches or found the key, a door will open -- head to the door to go to the next room.
+Use the arrow keys to move. The room is pitch black, so you'll need to get closer to an object in order to illuminate it. To light a torch or open a chest, simply move over it. A chest may reveal the key or a bomb; if it's the latter, you'll start back at the beginning, but the location of the bomb will remain shown to you so you don't screw up again, silly. Once you've lit all the torches or found the key, a door will open -- head to the door to go to the next room.
 
 Sources: All assets created by Anna Li.
 
