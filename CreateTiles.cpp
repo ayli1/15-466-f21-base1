@@ -32,9 +32,10 @@ int main(int argc, char** argv) {
 									"../images/explosion.png",
 									"../images/door.png"}; // Update for loop count if adding sprites
 
-	int num_rooms = 2;
-	std::string room_paths[2] = { "../images/room0.png",
-								  "../images/room1.png"};
+	int num_rooms = 3;
+	std::string room_paths[3] = { "../images/room0.png",
+								  "../images/room1.png",
+								  "../images/room2.png"};
 
 	std::string bg_path = "../images/background.png";
 
@@ -160,4 +161,6 @@ int main(int argc, char** argv) {
 												// its own vector of structs
 	write_chunk("rom2", rooms[0].objects, &out);
 	write_chunk("rom3", rooms[1].objects, &out);
+	write_chunk("rom4", rooms[2].objects, &out);
+
 }

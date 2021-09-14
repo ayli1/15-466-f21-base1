@@ -61,6 +61,7 @@ PlayMode::PlayMode() {
 	read_chunk(in, "til1", &tile_table);
 	read_chunk(in, "rom2", &room0);
 	read_chunk(in, "rom3", &room1);
+	read_chunk(in, "rom4", &room2);
 
 	room = room0; // Initialize current room to be room0
 
