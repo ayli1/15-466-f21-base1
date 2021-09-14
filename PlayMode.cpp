@@ -60,6 +60,9 @@ PlayMode::PlayMode() {
 	read_chunk(in, "pal0", &palette_table);
 	read_chunk(in, "til1", &tile_table);
 	read_chunk(in, "rom2", &room0);
+	read_chunk(in, "rom3", &room1);
+
+	room = room0; // Initialize current room to be room0
 
 	// Transfer to PPU palette and tile table
 	for (int i = 0; i < 8; i++) {
@@ -281,12 +284,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
-	// TODO: if 0, Room *room = &room0; if 1, Room *room = &room1
-
 	// Collision check
 	bool explode = false;
-	for (int i = 0; i < room0.size(); i++) {
-		Object *obj = &room0[i];
+	for (int i = 0; i < room.size(); i++) {
+		Object *obj = &room[i];
 		if (obj->reached) {
 			continue;
 		}
@@ -315,10 +316,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	sprite_idx++;
 
 	bool found_key = false;
-	//bool explode = false;
 	// TODO: give all sprites except player priority = 1 for their attribute
-	for (int i = 0; i < room0.size(); i++) {
-		Object *obj = &room0[i];
+	for (int i = 0; i < room.size(); i++) {
+		Object *obj = &room[i];
 		if (obj->obj_type == 0) { // Torch
 			if (obj->reached) {   // Lit torch
 				ppu.sprites[sprite_idx].index      = 2;
@@ -370,8 +370,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	// Check if room is complete, i.e. either the key was found or all torches have been lit
 	bool all_lit = true;
 	if (!found_key) {
-		for (int i = 0; i < room0.size(); i++) {
-			Object* obj = &room0[i];
+		for (int i = 0; i < room.size(); i++) {
+			Object* obj = &room[i];
 			if ((obj->obj_type == 0) && !(obj->reached)) {
 				all_lit = false;
 			}
@@ -385,15 +385,23 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[sprite_idx].index = 6;
 		ppu.sprites[sprite_idx].attributes = 6;
 
-		if (glm::distance(glm::vec2(248, 232), player_at) < 5) {
+		// Once player reaches door (and it's not the last room), go to next room
+		if ((room_num != 2) && glm::distance(glm::vec2(248, 232), player_at) < 5) {
 			room_num++;
-			std::cout << "To the next level!" << std::endl;
+			if (room_num == 1) {
+				room = room1;
+			}
+			else if (room_num == 2) {
+				room = room2;
+			}
+			player_at = glm::vec2(0.0f);
+			std::cout << "To the next room!" << std::endl;
 		}
 	}
 
 	if (explode) {
-		for (int i = 0; i < room0.size(); i++) {
-			Object* obj = &room0[i];
+		for (int i = 0; i < room.size(); i++) {
+			Object* obj = &room[i];
 			// If it's not a bomb, reset this object (keep showing explosion after reset
 			// as a kindness to the player)
 			if (obj->obj_type != 2) {

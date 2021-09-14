@@ -37,5 +37,8 @@ struct PlayMode : Mode {
 	bool draw_opponent = true;
 
 	int room_num = 0;
+	std::vector< Object > room; // Current room
 	std::vector< Object > room0;
+	std::vector< Object > room1;
+	std::vector< Object > room2;
 };
