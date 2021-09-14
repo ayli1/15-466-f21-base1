@@ -12,6 +12,7 @@
 #include "data_path.hpp"
 #include "load_save_png.hpp"
 #include "read_write_chunk.hpp"
+#include "Room.hpp"
 
 int main(int argc, char** argv) {
 	std::cout << "Hey bestie... \n";
@@ -19,15 +20,17 @@ int main(int argc, char** argv) {
 	// i.e., sprite_paths and room_paths. Last palette and tile are reserved for background
 	std::vector< PPU466::Palette > palette_table(8);
 	std::vector< PPU466::Tile > tile_table(16 * 16);
+	std::vector< Room > rooms;
 
 	// PNG filenames
-	int num_sprites = 6;
-	std::string sprite_paths[6] = { "../images/flame.png",
+	int num_sprites = 7;
+	std::string sprite_paths[7] = { "../images/flame.png",
 								    "../images/unlit_torch.png",
 									"../images/lit_torch.png",
 									"../images/chest.png",
 									"../images/key.png",
-									"../images/explosion.png"}; // Update for loop count if adding sprites
+									"../images/explosion.png",
+									"../images/door.png"}; // Update for loop count if adding sprites
 
 	int num_rooms = 1;
 	std::string room_paths[1] = { "../images/room0.png" };
@@ -52,8 +55,8 @@ int main(int argc, char** argv) {
 
 	PPU466::Tile bg_tile;
 	for (int i = 0; i < 8; i++) {
-		bg_tile.bit1[i] = 0; // All 0's
-		bg_tile.bit0[i] = 0; // All 0's
+		bg_tile.bit1[i] = 255; // All 0's
+		bg_tile.bit0[i] = 0; // All 1's
 	}
 	tile_table[255] = bg_tile;
 
@@ -117,36 +120,43 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	/*
 	for (int i = 0; i < num_rooms; i++) {
-		load_png(data_path(room_paths[i]), &size, &data, UpperLeftOrigin); // TODO: Upper or LowerLeftOrigin?
+		std::cout << room_paths[i] << std::endl;
+		load_png(data_path(room_paths[i]), &size, &data, UpperLeftOrigin);
 
-		PPU466::Palette palette = {
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		};
-
-		PPU466::Tile tile;
-		tile.bit0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
-		tile.bit1 = { 0, 0, 0, 0, 0, 0, 0, 0 };
+		Room new_room;
 
 		int num_objects = 0;
-		while (data[num_objects].z != 0x00) {
-			num_objects++;
 
+		while (data[num_objects].w != 0x00) { // Alpha value -- if transparent, it's not info
+			std::cout << "Unpacking a new object" << std::endl;
+			std::cout << "A value: " << unsigned(data[num_objects].w) << std::endl;
+			Object new_obj;
+			new_obj.obj_type = data[num_objects].x; // Stored in PNG as R value
+			std::cout << "R value: " << unsigned(new_obj.obj_type) << std::endl;
+			new_obj.x        = data[num_objects].y; // Stored in PNG as G value
+			std::cout << "G value: " << unsigned(new_obj.x) << std::endl;
+			new_obj.y        = data[num_objects].z; // Stored in PNG as B value
+			std::cout << "B value: " << unsigned(new_obj.y) << std::endl;
+
+			new_room.objects.push_back(new_obj);
+
+			num_objects++;
 		}
 
-		tile_table[num_sprites + i] = tile;
-
+		rooms.push_back(new_room);
 		//DON'T FORGET TO WRITE_CHUNK BELOW
-	}*/
+	}
 
 	// Write binary to tiles.bin
 	std::ofstream out(data_path("../tiles.bin"), std::ios::binary);
 	write_chunk("pal0", palette_table, &out);
-	write_chunk("til1", tile_table, &out);
-	//TODO: write_chunk rooms
+	write_chunk("til1", tile_table,    &out);
+	//write_chunk("rom2", rooms,         &out); // For some reason, there was a problem
+												// reading this in PlayMode...? I suspect
+												// it has something to do with how rooms
+												// is a vector of structs, each containing
+												// its own vector of structs
+	write_chunk("rom2", rooms[0].objects, &out);
 
 }

@@ -59,6 +59,7 @@ PlayMode::PlayMode() {
 	std::ifstream in(data_path("../tiles.bin"), std::ios::binary);
 	read_chunk(in, "pal0", &palette_table);
 	read_chunk(in, "til1", &tile_table);
+	read_chunk(in, "rom2", &room0);
 
 	// Transfer to PPU palette and tile table
 	for (int i = 0; i < 8; i++) {
@@ -280,13 +281,83 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
-	//player sprite:
-	ppu.sprites[0].x = int32_t(player_at.x);
-	ppu.sprites[0].y = int32_t(player_at.y);
-	ppu.sprites[0].index = 0; // TODO
-	ppu.sprites[0].attributes = 0;
+	// Collision check
+	for (int i = 0; i < room0.size(); i++) {
+		Object *obj = &room0[i];
+		if (obj->reached) {
+			continue;
+		}
+		glm::vec2 obj_pos = glm::vec2(obj->x, obj->y);
+		glm::vec2 min = glm::max(player_at, obj_pos);
+		glm::vec2 max = glm::min(player_at + glm::vec2(8, 8), obj_pos + glm::vec2(8, 8));
+
+		//if no overlap, no collision:
+		if (min.x > max.x || min.y > max.y) continue;
+
+		if (max.x - min.x > max.y - min.y) {
+			std::cout << "COLLISION" << std::endl;
+			obj->reached = true;
+		}
+	}
+
+	int sprite_idx = 0;
+	//player sprite (flame):
+	ppu.sprites[sprite_idx].x = int32_t(player_at.x);
+	ppu.sprites[sprite_idx].y = int32_t(player_at.y);
+	ppu.sprites[sprite_idx].index = 0; // TODO
+	ppu.sprites[sprite_idx].attributes = 0;
+
+	sprite_idx++;
 
 	// TODO: give all sprites except player priority = 1 for their attribute
+	for (int i = 0; i < room0.size(); i++) {
+		Object *obj = &room0[i];
+		if (obj->obj_type == 0) { // Torch
+			if (obj->reached) {   // Lit torch
+				ppu.sprites[sprite_idx].index      = 2;
+				ppu.sprites[sprite_idx].attributes = 2;
+			}
+			else {               // Unlit torch
+				ppu.sprites[sprite_idx].index      = 1;
+				ppu.sprites[sprite_idx].attributes = 1;
+				// If player not close enough, draw behind background (not "illuminated")
+				if (glm::distance(glm::vec2(obj->x, obj->y), player_at) > 30) {
+					ppu.sprites[sprite_idx].attributes = ppu.sprites[sprite_idx].attributes | (1 << 7);
+				}
+			}
+		}
+		else if (obj->obj_type == 1) { // Key
+			if (obj->reached) {        // Show as key
+				ppu.sprites[sprite_idx].index      = 4;
+				ppu.sprites[sprite_idx].attributes = 4;
+			}
+			else {                // Show as chest
+				ppu.sprites[sprite_idx].index      = 3;
+				ppu.sprites[sprite_idx].attributes = 3;
+				// If player not close enough, draw behind background (not "illuminated")
+				if (glm::distance(glm::vec2(obj->x, obj->y), player_at) > 20) {
+					ppu.sprites[sprite_idx].attributes = ppu.sprites[sprite_idx].attributes | (1 << 7);
+				}
+			}
+		}
+		else if (obj->obj_type == 2) { // Bomb
+			if (obj->reached) {        // Show explosion
+				ppu.sprites[sprite_idx].index      = 5;
+				ppu.sprites[sprite_idx].attributes = 5;
+			}
+			else {                // Show as chest
+				ppu.sprites[sprite_idx].index      = 3;
+				ppu.sprites[sprite_idx].attributes = 3;
+				// If player not close enough, draw behind background (not "illuminated")
+				if (glm::distance(glm::vec2(obj->x, obj->y), player_at) > 20) {
+					ppu.sprites[sprite_idx].attributes = ppu.sprites[sprite_idx].attributes | (1 << 7);
+				}
+			}
+		}
+		ppu.sprites[sprite_idx].x = obj->x;
+		ppu.sprites[sprite_idx].y = obj->y;
+		sprite_idx++;
+	}
 
 	//some other misc sprites:
 	/*for (uint32_t i = 1; i < 63; ++i) {

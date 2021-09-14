@@ -1,5 +1,6 @@
 #include "PPU466.hpp"
 #include "Mode.hpp"
+#include "Room.hpp"
 
 #include <glm/glm.hpp>
 
@@ -34,4 +35,7 @@ struct PlayMode : Mode {
 	PPU466 ppu;
 
 	bool draw_opponent = true;
+
+	int room_num = 0;
+	std::vector< Object > room0;
 };
