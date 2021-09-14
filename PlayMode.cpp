@@ -282,6 +282,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
 	// Collision check
+	bool explode = false;
 	for (int i = 0; i < room0.size(); i++) {
 		Object *obj = &room0[i];
 		if (obj->reached) {
@@ -295,8 +296,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		if (min.x > max.x || min.y > max.y) continue;
 
 		if (max.x - min.x > max.y - min.y) {
-			std::cout << "COLLISION" << std::endl;
 			obj->reached = true;
+			if (obj->obj_type == 2) { // If bomb, explode
+				explode = true;
+			}
 		}
 	}
 
@@ -309,6 +312,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	sprite_idx++;
 
+	bool room_complete = false;
+	//bool explode = false;
 	// TODO: give all sprites except player priority = 1 for their attribute
 	for (int i = 0; i < room0.size(); i++) {
 		Object *obj = &room0[i];
@@ -317,7 +322,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				ppu.sprites[sprite_idx].index      = 2;
 				ppu.sprites[sprite_idx].attributes = 2;
 			}
-			else {               // Unlit torch
+			else {                // Unlit torch
 				ppu.sprites[sprite_idx].index      = 1;
 				ppu.sprites[sprite_idx].attributes = 1;
 				// If player not close enough, draw behind background (not "illuminated")
@@ -357,6 +362,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[sprite_idx].x = obj->x;
 		ppu.sprites[sprite_idx].y = obj->y;
 		sprite_idx++;
+	}
+
+	if (explode) {
+		for (int i = 0; i < room0.size(); i++) {
+			Object* obj = &room0[i];
+			// If it's not a bomb, reset this object (keep showing explosion after reset
+			// as a kindness to the player)
+			if (obj->obj_type != 2) {
+				obj->reached = false;
+			}
+		}
+		// Put player back at starting position
+		player_at = glm::vec2(0.0f);
 	}
 
 	//some other misc sprites:
